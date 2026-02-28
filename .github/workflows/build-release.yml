@@ -1,0 +1,80 @@
+name: Build & Release Multi-Platform
+
+on:
+  push:
+    tags:
+      - 'v*' # 触发条件：推送 v 开头的标签
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x64
+          - os: windows-latest
+            build_arg: "--win"
+            artifact_pattern: "dist/*.exe"
+
+          # Linux x64 (amd64)
+          - os: ubuntu-latest
+            build_arg: "--linux"
+            artifact_pattern: "dist/*x64.*"
+
+          # Linux arm64
+          - os: ubuntu-latest
+            build_arg: "--linux --arm64"
+            artifact_pattern: "dist/*arm64.*"
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Application
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 如果你的 electron-builder.yml 中 publish.url 不需要在 CI 中生效，可以忽略
+          # 如果需要在 CI 中替换更新服务器地址，可在此处设置环境变量
+        run: |
+          # 1. 编译 Vite 项目 (生成 out/ 或 dist/ 目录)
+          npm run build
+
+          # 2. 执行 Electron Builder
+          # 由于你的 electron-builder.yml 已经配置了 target (deb, AppImage, snap)，
+          # 我们只需要传入 --win 或 --linux 即可，它会自动读取配置文件。
+          echo "Running: npx electron-builder ${{ matrix.build_arg }} --publish never"
+          npx electron-builder ${{ matrix.build_arg }} --publish never
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          # 上传所有生成的包
+          # 根据你的配置，会生成 .exe, .deb, .AppImage, .snap 等
+          files: |
+            dist/*.exe
+            dist/*.msi
+            dist/*.deb
+            dist/*.AppImage
+            dist/*.snap
+            dist/*.dmg
+            dist/*.zip
+            dist/latest*.yml
+            dist/*.blockmap
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
