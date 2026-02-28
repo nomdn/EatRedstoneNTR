@@ -3,78 +3,106 @@ name: Build & Release Multi-Platform
 on:
   push:
     tags:
-      - 'v*' # 触发条件：推送 v 开头的标签
+      - 'v*'
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Windows x64
-          - os: windows-latest
-            build_arg: "--win"
-            artifact_pattern: "dist/*.exe"
-
-          # Linux x64 (amd64)
-          - os: ubuntu-latest
-            build_arg: "--linux"
-            artifact_pattern: "dist/*x64.*"
-
-          # Linux arm64
-          - os: ubuntu-latest
-            build_arg: "--linux --arm64"
-            artifact_pattern: "dist/*arm64.*"
-
+  build-windows:
+    runs-on: windows-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Deps
+        run: npm ci
+      - name: Build
+        run: |
+          npm run build
+          npx electron-builder --win --publish never
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.msi
+            dist/*.blockmap
+            dist/latest*.yml
 
-      - name: Setup Node.js
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Deps
+        run: npm ci
+      - name: Build
+        run: |
+          npm run build
+          npx electron-builder --linux --x64 --publish never
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*x64.deb
+            dist/*.AppImage
+            dist/*.snap
+            dist/*.blockmap
+            dist/latest*.yml
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup QEMU & Cross-Compilation Tools
+        # 【关键修复】安装 ARM64 交叉编译所需的系统库和模拟器
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Application
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # 如果你的 electron-builder.yml 中 publish.url 不需要在 CI 中生效，可以忽略
-          # 如果需要在 CI 中替换更新服务器地址，可在此处设置环境变量
+      - name: Install Deps & Rebuild for ARM64
+        # 【关键修复】强制清理并重新构建原生模块以适配 arm64
         run: |
-          # 1. 编译 Vite 项目 (生成 out/ 或 dist/ 目录)
+          # 删除 node_modules 以防 x64 二进制文件残留
+          rm -rf node_modules
+          npm ci
+          # 强制 electron-builder 重建原生模块
+          export npm_config_arch=arm64
           npm run build
-
-          # 2. 执行 Electron Builder
-          # 由于你的 electron-builder.yml 已经配置了 target (deb, AppImage, snap)，
-          # 我们只需要传入 --win 或 --linux 即可，它会自动读取配置文件。
-          echo "Running: npx electron-builder ${{ matrix.build_arg }} --publish never"
-          npx electron-builder ${{ matrix.build_arg }} --publish never
-
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          # 上传所有生成的包
-          # 根据你的配置，会生成 .exe, .deb, .AppImage, .snap 等
-          files: |
-            dist/*.exe
-            dist/*.msi
-            dist/*.deb
-            dist/*.AppImage
-            dist/*.snap
-            dist/*.dmg
-            dist/*.zip
-            dist/latest*.yml
-            dist/*.blockmap
-          draft: false
-          prerelease: false
-          generate_release_notes: true
+          
+      - name: Build ARM64
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          npm_config_arch: arm64
+        run: |
+          # 显式指定 arch 并确保 rebuild 开启
+          npx electron-builder --linux --arm64 --publish never
+
+      - name: Upload
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*arm64.deb
+            dist/*arm64.AppImage
+            dist/*.blockmap
+            dist/latest*.yml
+
+# 【关键修复】全局权限配置，解决 403 错误
+permissions:
+  contents: write
+  packages: write
+  id-token: write
