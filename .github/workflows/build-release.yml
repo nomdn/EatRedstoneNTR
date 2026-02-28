@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [created]
 
 jobs:
   build-windows:
@@ -29,7 +31,7 @@ jobs:
             dist/*.exe
             dist/*.msi
             dist/*.blockmap
-            dist/latest*.yml
+            dist/latest.yml # Windows 的 latest.yml
 
   build-linux-x64:
     runs-on: ubuntu-latest
@@ -51,58 +53,38 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*x64.deb
+            dist/*.deb        # ✅ 修改：匹配所有 .deb (包括 _amd64.deb)
             dist/*.AppImage
             dist/*.snap
             dist/*.blockmap
-            dist/latest*.yml
+            dist/latest-linux.yml # Linux 的 latest.yml
 
   build-linux-arm64:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Setup QEMU & Cross-Compilation Tools
-        # 【关键修复】安装 ARM64 交叉编译所需的系统库和模拟器
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qemu-user-static gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install Deps & Rebuild for ARM64
-        # 【关键修复】强制清理并重新构建原生模块以适配 arm64
+      - name: Install Deps
+        run: npm ci
+      - name: Build
         run: |
-          # 删除 node_modules 以防 x64 二进制文件残留
-          rm -rf node_modules
-          npm ci
-          # 强制 electron-builder 重建原生模块
-          export npm_config_arch=arm64
           npm run build
-          
-      - name: Build ARM64
-        env:
-          npm_config_arch: arm64
-        run: |
-          # 显式指定 arch 并确保 rebuild 开启
           npx electron-builder --linux --arm64 --publish never
-
       - name: Upload
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*arm64.deb
-            dist/*arm64.AppImage
+            dist/*.deb        # ✅ 修改：匹配所有 .deb (包括 _arm64.deb)
+            dist/*.AppImage
+            dist/*.snap
             dist/*.blockmap
-            dist/latest*.yml
+            # 注意：ARM64 通常不覆盖 latest-linux.yml，除非你做了特殊配置
 
-# 【关键修复】全局权限配置，解决 403 错误
 permissions:
   contents: write
   packages: write
-  id-token: write
