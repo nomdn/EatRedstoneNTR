@@ -27,6 +27,16 @@ jobs:
       - name: Upload
         uses: softprops/action-gh-release@v2
         with:
+          name: Release ${{ github.ref_name }} 
+          tag_name: ${{ github.ref_name }}
+          body: |            
+            | 系统 | 推荐文件 | 备注 |
+            | :--- | :--- | :--- |
+            | **Windows** | `lemontools-*-setup.exe` | 一键安装 |
+            | **Linux (x64)** | `*.deb` 或 `*.AppImage` | Ubuntu/Debian/CentOS/统信UOS/Deepin |
+            | **Linux (ARM64)** | `*-arm64.deb` | 🆕 树莓派/Oracle Pi/华为(UOS系统) |  
+          # GitHub 会自动在这里插入生成的 Release Notes
+          generate_release_notes: true
           files: |
             dist/*.exe
             dist/*.msi
