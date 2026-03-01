@@ -53,14 +53,14 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*.deb        # ✅ 修改：匹配所有 .deb (包括 _amd64.deb)
+            dist/*.deb     
             dist/*.AppImage
             dist/*.snap
             dist/*.blockmap
-            dist/latest-linux.yml # Linux 的 latest.yml
+            dist/latest-linux.yml
 
   build-linux-arm64:
-    runs-on: ubuntu-24.04-arm64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -79,11 +79,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/*.deb        # ✅ 修改：匹配所有 .deb (包括 _arm64.deb)
+            dist/*.deb
             dist/*.AppImage
             dist/*.snap
             dist/*.blockmap
-            # 注意：ARM64 通常不覆盖 latest-linux.yml，除非你做了特殊配置
+           
 
 permissions:
   contents: write
