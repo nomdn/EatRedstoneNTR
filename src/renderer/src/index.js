@@ -14,7 +14,8 @@ const routes = [
       { path: 'hash', component: () => import('./pages/Tools/HashTool.vue') },
       { path: 'haruhikage', component: () => import('./pages/Tools/Haruhikage.vue') },
       { path: 'qr', component: () => import('./pages/Tools/QRCode.vue') },
-      { path: 'objection', component: () => import('./pages/Tools/Objection.vue') }
+      { path: 'objection', component: () => import('./pages/Tools/Objection.vue') },
+      { path: 'aichat', component: () => import('./pages/Tools/AIChat.vue') }
     ]
   }
 ]

@@ -18,12 +18,14 @@
     "build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
+    "@devui-design/icons": "^1.4.0",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@element-plus/icons-vue": "^2.3.2",
     "@ffmpeg/ffmpeg": "^0.11.0",
     "@giscus/vue": "^3.1.1",
     "@magenta/music": "^1.23.1",
+    "@matechat/core": "^1.12.0",
     "@tailwindcss/vite": "^4.2.1",
     "aplayer": "^1.10.1",
     "axios": "^1.13.6",
@@ -31,7 +33,9 @@
     "ffmpeg.js": "^2.8.9001",
     "html-midi-player": "^1.6.0",
     "midijs": "^0.12.0",
+    "openai": "^6.25.0",
     "tailwindcss": "^4.2.1",
+    "vue-devui": "^1.6.36",
     "vue-router": "^5.0.3"
   },
   "devDependencies": {

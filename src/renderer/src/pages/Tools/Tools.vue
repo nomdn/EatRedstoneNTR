@@ -24,10 +24,14 @@
         <img src="/yy.webp">
         异议！
       </div>
+      <div class="tool-tile" @click="go('aichat')">
+        <ChatRound style="width: 80px;height: 80px;margin-right: 30px;"/>
+        AI 聊天
+      </div>
     </div>
     <div v-else class="tool-content-area">
       <div class="tool-header">
-        <el-button @click="goBack">返回</el-button>
+        <el-button @click="goBack" style="margin-right: 10px;">返回</el-button>
         <span class="tool-title-header">{{ currentTitle }}</span>
       </div>
       <router-view></router-view>
@@ -38,7 +42,7 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
 import { computed } from 'vue'
-import { Picture, Switch ,Lock ,Camera} from '@element-plus/icons-vue'
+import { Picture, Switch ,Lock ,Camera ,ChatRound} from '@element-plus/icons-vue'
 import { ElIcon } from 'element-plus'
 const router = useRouter()
 const route = useRoute()
@@ -57,6 +61,7 @@ const currentTitle = computed(() => {
   if (p.startsWith('/tools/haruhikage')) return '春日影'
   if (p.startsWith('/tools/qr')) return '二维码生成'
   if (p.startsWith('/tools/objection')) return '异议！'
+  if (p.startsWith('/tools/aichat')) return 'AI 聊天'
   return ''
 })
 </script>
@@ -81,6 +86,7 @@ const currentTitle = computed(() => {
   border: 1px solid #e5e5e5;
   border-radius: 6px;
   cursor: pointer;
+  margin-left: 20px;
   font-weight: 600;
   padding: 0 20px;           /* 【建议添加】给左右留点边距，避免图片贴边太紧 */
   box-sizing: border-box;    /* 【建议添加】确保 padding 不会撑大盒子 */
@@ -100,8 +106,8 @@ const currentTitle = computed(() => {
 .tool-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
+  margin-left: 10px;
 }
 .tool-title-header {
   font-weight: 600;

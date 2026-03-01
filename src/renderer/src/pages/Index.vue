@@ -39,7 +39,7 @@ const activePath = computed(() => (route.path.startsWith('/tools') ? '/tools' : 
 .layout {
   display: flex;
   align-items: stretch;
-  min-height: 100vh;
+  min-height: 70vh;
 }
 .side-menu {
   max-width: 20%;
@@ -49,7 +49,6 @@ const activePath = computed(() => (route.path.startsWith('/tools') ? '/tools' : 
 }
 .content-area {
   flex: 1 1 auto;
-  min-width: 80%;
   max-width: 800px;
   display: flex;
   align-items: center;

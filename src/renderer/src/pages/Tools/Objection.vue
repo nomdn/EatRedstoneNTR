@@ -3,8 +3,6 @@
     <h1>异议</h1>
     <h3>点击成不当开始异议！</h3>
 
-
-
     <div class="images">
       <img :src="'./' + value + '.gif'" class="image1" v-if="active"></img>
       <img src="/cbt.webp" @click="handleClick" @mouseenter="handleClick" class="image2"></img>
@@ -60,7 +58,7 @@
 <style scoped>
   .card {
     display: flex;
-    margin: 30px;
+    margin: 10px;
     flex-direction: column;
     padding: 16px;
   }
@@ -78,8 +76,8 @@
 
   .image1 {
     position: absolute;
-    margin-right: 20%;
-    margin-top: 60%;
+    margin-right: 5%;
+    margin-top: 40%;
     top: 0;
     left: 0;
     z-index: 2;
@@ -87,8 +85,6 @@
 
   .image2 {
     position: absolute;
-    top: 50px;
-    left: 50px;
     z-index: 0;
   }
 
