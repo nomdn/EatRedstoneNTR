@@ -185,7 +185,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
 
           # ✅ 标题格式：提交标题 (版本号)
-          name: "${{ steps.commit_info.outputs.subject }} (${{ github.ref_name }})"
+          name: "Release ${{ github.ref_name }}"
 
           # ✅ 使用生成的详细正文
           body: ${{ steps.changelog.outputs.body }}
