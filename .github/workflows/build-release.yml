@@ -134,11 +134,66 @@ jobs:
           ls -R dist-final/
 
       # 统一上传并发布
+# --- 获取 Commit 信息 (核心修改) ---
+      - name: Get Commit Info
+        id: commit_info
+        run: |
+          COMMIT_SHORT_SHA=$(git rev-parse --short HEAD)
+          COMMIT_SUBJECT=$(git log -1 --pretty=format:"%s")
+
+          echo "short_sha=$COMMIT_SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "subject=$COMMIT_SUBJECT" >> $GITHUB_OUTPUT
+          echo "🏷️ Tag: ${{ github.ref_name }}"
+          echo "💬 Commit: $COMMIT_SUBJECT ($COMMIT_SHORT_SHA)"
+
+      # --- 生成专业的 Release Body ---
+      - name: Generate Release Body
+        id: changelog
+        run: |
+          cat << EOF > body.md
+          ## 🚀 版本发布：${{ github.ref_name }}
+
+          **更新内容**: ${{ steps.commit_info.outputs.subject }}
+          **构建时间**: $(date -u +"%Y-%m-%d %H:%M UTC")
+
+          ---
+          ### 📦 下载列表
+
+          | 平台 | 架构 | 推荐文件 | 说明 |
+          | :--- | :--- | :--- | :--- |
+          | **Windows** | x64 | \`win/*-setup.exe\` | 一键安装程序 |
+          | **Linux** | x64 | \`linux-x64/*-x64.AppImage\` | 通用免安装 (推荐) |
+          | **Linux** | x64 | \`linux-x64/*.deb\` | Debian/Ubuntu 安装包 |
+          | **Linux** | ARM64 | \`linux-arm64/*-arm64.AppImage\` | 树莓派/华为/Oracle Pi |
+          | **Linux** | ARM64 | \`linux-arm64/*-arm64.deb\` | ARM 架构 Deb 包 |
+
+          > 💡 **提示**:
+          > - Windows 用户直接运行 \`setup.exe\`。
+          > - Linux 用户优先选择 \`AppImage\`，无需安装，赋予执行权限后双击即可运行。
+          > - 如果不确定架构，请在终端运行 \`uname -m\` (x86_64 为 x64, aarch64 为 ARM64)。
+          EOF
+
+          echo "body<<EOFMARKER" >> $GITHUB_OUTPUT
+          cat body.md >> $GITHUB_OUTPUT
+          echo "EOFMARKER" >> $GITHUB_OUTPUT
+
+      # --- 统一上传并发布 ---
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Release ${{ github.ref_name }}
+          # ✅ 关键：使用 Git Tag (如 v1.1.0) 而不是 Hash
           tag_name: ${{ github.ref_name }}
-          generate_release_notes: true
+
+          # ✅ 标题格式：提交标题 (版本号)
+          name: "${{ steps.commit_info.outputs.subject }} (${{ github.ref_name }})"
+
+          # ✅ 使用生成的详细正文
+          body: ${{ steps.changelog.outputs.body }}
+
+          generate_release_notes: true # 自动追加 GitHub 的变更日志
+          draft: false
+          prerelease: false
+
+          # 上传所有整理好的文件 (包含子目录结构)
           files: |
-            dist-final/*
+            dist-final/**/*

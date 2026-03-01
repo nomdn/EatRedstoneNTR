@@ -14,7 +14,7 @@ function pushtodownload() {
 
     <h2 style="margin-top: 30px">这不是一个网页，他只是用了网页的技术栈</h2>
     <h3 style="margin-top: 20px">这是一个正常的软件，所以我不能在这里发疯</h3>
-
+    <h4>Made By <span style="color: #007bff;">nomdn</span></h4>
   </div>
 </template>
 
