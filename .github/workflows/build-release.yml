@@ -139,18 +139,6 @@ jobs:
         with:
           name: Release ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          body: |
-            ## 📦 更新日志
-
-            本次发布包含以下平台的安装包：
-
-            | 系统 | 架构 | 推荐文件 | 备注 |
-            | :--- | :--- | :--- | :--- |
-            | **Windows** | x64 | `*-setup.exe` | 一键安装 |
-            | **Linux** | x64 | `*-x64.AppImage` / `*.deb` | Ubuntu/Debian/CentOS |
-            | **Linux** | ARM64 | `*-arm64.AppImage` / `*-arm64.deb` | 树莓派/华为/Oracle Pi |
-
-            > 💡 **提示**: 如果不确定架构，Linux 用户通常选择 `.deb` (Debian/Ubuntu) 或 `AppImage` (通用)。
           generate_release_notes: true
           files: |
             dist-final/*
