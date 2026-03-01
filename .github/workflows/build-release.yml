@@ -7,7 +7,15 @@ on:
   release:
     types: [created]
 
+# 全局权限设置
+permissions:
+  contents: write
+  packages: write
+  actions: read # 需要读取 artifacts
+
 jobs:
+  # ================= 1. 构建阶段 (并行运行) =================
+
   build-windows:
     runs-on: windows-latest
     steps:
@@ -24,24 +32,15 @@ jobs:
         run: |
           npm run build
           npx electron-builder --win --publish never
-      - name: Upload
-        uses: softprops/action-gh-release@v2
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: Release ${{ github.ref_name }} 
-          tag_name: ${{ github.ref_name }}
-          body: |            
-            | 系统 | 推荐文件 | 备注 |
-            | :--- | :--- | :--- |
-            | **Windows** | `lemontools-*-setup.exe` | 一键安装 |
-            | **Linux (x64)** | `*.deb` 或 `*.AppImage` | Ubuntu/Debian/CentOS/统信UOS/Deepin |
-            | **Linux (ARM64)** | `*-arm64.deb` | 🆕 树莓派/Oracle Pi/华为(UOS系统) |  
-          # GitHub 会自动在这里插入生成的 Release Notes
-          generate_release_notes: true
-          files: |
-            dist/*.exe
-            dist/*.msi
-            dist/*.blockmap
-            dist/latest.yml # Windows 的 latest.yml
+          name: dist-windows
+          path: |
+            dist/*-setup.exe
+            dist/*-setup.exe.blockmap
+            dist/latest.yml
+          retention-days: 1 # 只需保留很短时间，发布完即自动清理
 
   build-linux-x64:
     runs-on: ubuntu-latest
@@ -59,17 +58,18 @@ jobs:
         run: |
           npm run build
           npx electron-builder --linux --x64 --publish never
-      - name: Upload
-        uses: softprops/action-gh-release@v2
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            dist/*.deb     
+          name: dist-linux-x64
+          path: |
+            dist/*.deb
             dist/*.AppImage
-            dist/*.snap
-            dist/*.blockmap
             dist/latest-linux.yml
+          retention-days: 1
 
   build-linux-arm64:
+    # 尝试使用原生 ARM runner，如果不可用请切换回 ubuntu-latest + QEMU
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
@@ -85,16 +85,72 @@ jobs:
         run: |
           npm run build
           npx electron-builder --linux --arm64 --publish never
-      - name: Upload
-        uses: softprops/action-gh-release@v2
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
+          name: dist-linux-arm64
+          path: |
             dist/*.deb
             dist/*.AppImage
-            dist/*.snap
-            dist/*.blockmap
-           
+          retention-days: 1
 
-permissions:
-  contents: write
-  packages: write
+  # ================= 2. 发布阶段 (串行，依赖所有构建完成) =================
+
+  publish-release:
+    needs: [build-windows, build-linux-x64, build-linux-arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 下载所有构建产物
+      - name: Download Windows Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-windows
+          path: dist-win
+
+      - name: Download Linux x64 Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-linux-x64
+          path: dist-linux-x64
+
+      - name: Download Linux ARM64 Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-linux-arm64
+          path: dist-linux-arm64
+
+      # 合并文件到一个目录，方便 action-gh-release 处理
+      - name: Merge Assets
+        run: |
+          mkdir -p dist-final
+          cp dist-win/* dist-final/
+          cp dist-linux-x64/* dist-final/
+          cp dist-linux-arm64/* dist-final/
+
+          # 可选：打印文件列表确认
+          ls -R dist-final/
+
+      # 统一上传并发布
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body: |
+            ## 📦 更新日志
+
+            本次发布包含以下平台的安装包：
+
+            | 系统 | 架构 | 推荐文件 | 备注 |
+            | :--- | :--- | :--- | :--- |
+            | **Windows** | x64 | `*-setup.exe` | 一键安装 |
+            | **Linux** | x64 | `*-x64.AppImage` / `*.deb` | Ubuntu/Debian/CentOS |
+            | **Linux** | ARM64 | `*-arm64.AppImage` / `*-arm64.deb` | 树莓派/华为/Oracle Pi |
+
+            > 💡 **提示**: 如果不确定架构，Linux 用户通常选择 `.deb` (Debian/Ubuntu) 或 `AppImage` (通用)。
+          generate_release_notes: true
+          files: |
+            dist-final/*

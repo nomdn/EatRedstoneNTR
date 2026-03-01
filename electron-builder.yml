@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.wsmdn.lemontools
 productName: lemontools
 directories:
   buildResources: build
@@ -34,7 +34,7 @@ linux:
   maintainer: electronjs.org
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: true
 publish:
   provider: generic
