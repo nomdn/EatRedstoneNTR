@@ -96,104 +96,90 @@ jobs:
 
   # ================= 2. 发布阶段 (串行，依赖所有构建完成) =================
 
-  publish-release:
-    needs: [build-windows, build-linux-x64, build-linux-arm64]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+publish-release:
+  needs: [build-windows, build-linux-x64, build-linux-arm64]
+  runs-on: ubuntu-latest
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
 
-      # 下载所有构建产物
-      - name: Download Windows Assets
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-windows
-          path: dist-win
+    # 下载所有构建产物
+    - name: Download Windows Assets
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-windows
+        path: dist-win
 
-      - name: Download Linux x64 Assets
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-linux-x64
-          path: dist-linux-x64
+    - name: Download Linux x64 Assets
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-linux-x64
+        path: dist-linux-x64
 
-      - name: Download Linux ARM64 Assets
-        uses: actions/download-artifact@v4
-        with:
-          name: dist-linux-arm64
-          path: dist-linux-arm64
+    - name: Download Linux ARM64 Assets
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-linux-arm64
+        path: dist-linux-arm64
 
-      # 合并文件到一个目录，方便 action-gh-release 处理
-      - name: Merge Assets
-        run: |
-          mkdir -p dist-final
-          cp dist-win/* dist-final/
-          cp dist-linux-x64/* dist-final/
-          cp dist-linux-arm64/* dist-final/
+    # 合并文件到一个目录
+    - name: Merge Assets
+      run: |
+        mkdir -p dist-final
+        cp dist-win/* dist-final/
+        cp dist-linux-x64/* dist-final/
+        cp dist-linux-arm64/* dist-final/
 
-          # 可选：打印文件列表确认
-          ls -R dist-final/
+    # --- 获取 Tag 信息（复用原步骤名）---
+    - name: Get Commit Info
+      id: commit_info
+      run: |
+        CURRENT_TAG="${{ github.ref_name }}"
+        echo "short_sha=$CURRENT_TAG" >> $GITHUB_OUTPUT
+        echo "subject=" >> $GITHUB_OUTPUT
 
-      # 统一上传并发布
-# --- 获取 Commit 信息 (核心修改) ---
-      - name: Get Commit Info
-        id: commit_info
-        run: |
-          COMMIT_SHORT_SHA=$(git rev-parse --short HEAD)
-          COMMIT_SUBJECT=$(git log -1 --pretty=format:"%s")
+    # --- 生成包含 changelog + 下载指南的完整 body ---
+    - name: Generate Changelog
+      id: changelog
+      run: |
+        # 第一部分：变更记录
+        echo "## 最新提交" > release_body.md
+        git log $(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "HEAD")..HEAD --pretty=format:"- %s" --no-merges >> release_body.md
 
-          echo "short_sha=$COMMIT_SHORT_SHA" >> $GITHUB_OUTPUT
-          echo "subject=$COMMIT_SUBJECT" >> $GITHUB_OUTPUT
-          echo "🏷️ Tag: ${{ github.ref_name }}"
-          echo "💬 Commit: $COMMIT_SUBJECT ($COMMIT_SHORT_SHA)"
+        # 第二部分：您指定的下载列表和提示（直接追加）
+        cat << 'EOF' >> release_body.md
 
-      # --- 生成专业的 Release Body ---
-      - name: Generate Release Body
-        id: changelog
-        run: |
-          cat << EOF > body.md
-          ## 🚀 版本发布：${{ github.ref_name }}
+        ### 📦 下载列表
+        
+        | 平台 | 架构 | 推荐文件 | 说明 |
+        | :--- | :--- | :--- | :--- |
+        | **Windows** | x64 | `win/*-setup.exe` | 一键安装程序 |
+        | **Linux** | x64 | `linux-x64/*-x64.AppImage` | 通用免安装 (推荐) |
+        | **Linux** | x64 | `linux-x64/*.deb` | Debian/Ubuntu 安装包 |
+        | **Linux** | ARM64 | `linux-arm64/*-arm64.AppImage` | ARM64通用免安装版 |
+        | **Linux** | ARM64 | `linux-arm64/*-arm64.deb` | ARM 架构 Deb 包 |
+        
+        > 💡 **提示**:
+        > - Windows 用户直接运行 `setup.exe`。
+        > - Linux 用户优先选择 `AppImage`，无需安装，赋予执行权限后双击即可运行。
+        > - 如果不确定架构，请在终端运行 `uname -m` (x86_64 为 x64, aarch64 为 ARM64)。
+        EOF
+        
+        # 输出为 body（注意：字段名为 body，与后续引用一致）
+        BODY=$(cat release_body.md)
+        echo "body<<EOFMARKER" >> $GITHUB_OUTPUT
+        echo "$BODY" >> $GITHUB_OUTPUT
+        echo "EOFMARKER" >> $GITHUB_OUTPUT
 
-          **更新内容**: ${{ steps.commit_info.outputs.subject }}
-          **构建时间**: $(date -u +"%Y-%m-%d %H:%M UTC")
-
-          ---
-          ### 📦 下载列表
-
-          | 平台 | 架构 | 推荐文件 | 说明 |
-          | :--- | :--- | :--- | :--- |
-          | **Windows** | x64 | \`win/*-setup.exe\` | 一键安装程序 |
-          | **Linux** | x64 | \`linux-x64/*-x64.AppImage\` | 通用免安装 (推荐) |
-          | **Linux** | x64 | \`linux-x64/*.deb\` | Debian/Ubuntu 安装包 |
-          | **Linux** | ARM64 | \`linux-arm64/*-arm64.AppImage\` | 树莓派/华为/Oracle Pi |
-          | **Linux** | ARM64 | \`linux-arm64/*-arm64.deb\` | ARM 架构 Deb 包 |
-
-          > 💡 **提示**:
-          > - Windows 用户直接运行 \`setup.exe\`。
-          > - Linux 用户优先选择 \`AppImage\`，无需安装，赋予执行权限后双击即可运行。
-          > - 如果不确定架构，请在终端运行 \`uname -m\` (x86_64 为 x64, aarch64 为 ARM64)。
-          EOF
-
-          echo "body<<EOFMARKER" >> $GITHUB_OUTPUT
-          cat body.md >> $GITHUB_OUTPUT
-          echo "EOFMARKER" >> $GITHUB_OUTPUT
-
-      # --- 统一上传并发布 ---
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          # ✅ 关键：使用 Git Tag (如 v1.1.0) 而不是 Hash
-          tag_name: ${{ github.ref_name }}
-
-          # ✅ 标题格式：提交标题 (版本号)
-          name: "Release ${{ github.ref_name }}"
-
-          # ✅ 使用生成的详细正文
-          body: ${{ steps.changelog.outputs.body }}
-
-          generate_release_notes: true # 自动追加 GitHub 的变更日志
-          draft: false
-          prerelease: false
-
-          # 上传所有整理好的文件 (包含子目录结构)
-          files: |
-            dist-final/**/*
+    # --- 统一上传并发布 ---
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: "Release ${{ github.ref_name }}"
+        body: ${{ steps.changelog.outputs.body }}   # ✅ 现在字段名匹配了
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+        files: |
+          dist-final/**/*
