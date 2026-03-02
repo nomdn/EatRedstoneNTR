@@ -49,7 +49,6 @@ const activePath = computed(() => (route.path.startsWith('/tools') ? '/tools' : 
 }
 .content-area {
   flex: 1 1 auto;
-  max-width: 800px;
   display: flex;
   align-items: center;
   justify-content: center;
