@@ -88,7 +88,6 @@
         >
           <McMarkdownCard
             :content="msg.content"
-            :theme="theme"
             :typing="true"
             :enableThink="true"
           ></McMarkdownCard>
