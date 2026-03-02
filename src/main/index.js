@@ -1,8 +1,48 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, safeStorage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+// src/main/index.js
+import fs from 'fs'
 
+// 密钥存储路径
+const KEY_PATH = join(app.getPath('userData'), 'ai-api-key.enc')
+// IPC 处理
+ipcMain.handle('save-api-key', (event, key) => {
+  if (!key) {
+    fs.existsSync(KEY_PATH) && fs.unlinkSync(KEY_PATH)
+    return true
+  }
+  try {
+    const encrypted = safeStorage.encryptString(key)
+    fs.writeFileSync(KEY_PATH, encrypted)
+    return true
+  } catch (err) {
+    console.error('保存密钥失败:', err)
+    return false
+  }
+})
+
+ipcMain.handle('get-api-key', () => {
+  if (!fs.existsSync(KEY_PATH)) return null
+  try {
+    const encrypted = fs.readFileSync(KEY_PATH)
+    return safeStorage.decryptString(encrypted)
+  } catch (err) {
+    console.error('读取密钥失败:', err)
+    return null
+  }
+})
+
+ipcMain.handle('delete-api-key', () => {
+  if (fs.existsSync(KEY_PATH)) {
+    fs.unlinkSync(KEY_PATH)
+    return true
+  }
+  return false
+})
+
+// ... 其他现有代码（createWindow, app.on 等保持不变）
 function createWindow() {
   // Create the browser window.
   const mainWindow = new BrowserWindow({

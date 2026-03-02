@@ -1,10 +1,32 @@
 <template>
-  <el-select v-model="selectedPrompt" placeholder="选一个预设" style="width: 240px">
+  <!-- Key 输入对话框 -->
+  <el-dialog v-model="showKeyDialog" title="请输入 API Key" width="400px" :close-on-click-modal="false" :close-on-press-escape="false">
+    <h3>您需要在<a href="https://ai.wsmdn.top/" target="_blank">咕咕嘎嘎API平台</a>获取密钥</h3>
+    <el-input
+      v-model="tempKey"
+      type="password"
+      placeholder="sk-xxxxxxxxxx"
+      @keyup.enter="saveKey"
+    />
+    <template #footer>
+      <el-button type="primary" @click="saveKey">确定</el-button>
+    </template>
+  </el-dialog>
+
+  <el-select v-model="selectedPrompt" placeholder="选一个预设" style="width: 240px;margin-right: 20px;">
       <el-option
         v-for="item in options"
         :key="item.value"
         :label="item.label"
         :value="item.prompt"
+      />
+  </el-select>
+  <el-select v-model="selectedModel" placeholder="选一个大模型" style="width: 240px">
+      <el-option
+        v-for="item in models"
+        :key="item.value"
+        :label="item.label"
+        :value="item.value"
       />
   </el-select>
   <McLayout class="container">
@@ -29,16 +51,21 @@
           :avatarConfig="{ imgSrc: 'https://matechat.gitcode.com/png/demo/userAvatar.svg' }"
         >
         </McBubble>
-        <McBubble v-else :content="msg.content" :avatarConfig="{ imgSrc: 'https://matechat.gitcode.com/logo.svg' }" :loading="msg.loading"> </McBubble>
+        <McBubble v-else :avatarConfig="{ imgSrc: 'https://matechat.gitcode.com/logo.svg' }" :loading="msg.loading">
+          <McMarkdownCard :content="msg.content" :theme="theme" :typing="true"></McMarkdownCard>
+        </McBubble>
       </template>
     </McLayoutContent>
     <div class="shortcut" style="display: flex; align-items: center; gap: 8px">
     </div>
     <McLayoutSender>
+
       <McInput :value="inputValue" :maxLength="2000" @change="(e) => (inputValue = e)" @submit="onSubmit">
         <template #extra>
+
           <div class="input-foot-wrapper">
             <div class="input-foot-left">
+
               <span class="input-foot-maxlength">{{ inputValue.length }}/2000</span>
             </div>
             <div class="input-foot-right">
@@ -52,26 +79,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { Button } from 'vue-devui/button';
 import 'vue-devui/button/style.css';
 import OpenAI from 'openai';
-import { ElSelect, ElOption } from 'element-plus';
+import { ElSelect, ElOption, ElDialog, ElInput, ElButton } from 'element-plus';
 import 'element-plus/dist/index.css';
 
-// ================= 状态 =================
+
 const startPage = ref(true);
 const inputValue = ref('');
 const messages = ref<any[]>([]);
 
-// ✅ 修复：直接绑定选中的 Prompt 字符串，不再需要中间变量
-const selectedPrompt = ref('');
 
+const selectedPrompt = ref('');
+const selectedModel = ref('glm-4.6v-flash');
 const options = [
     {
       value: 'default',
       label: "默认设定",
-      prompt: 'Role: 小助手\n\n## 1. 全局设定\n- 身份：小助手，负责协助用户解答各种问题。\n- 语言风格：友好、耐心、简洁，适合所有年龄段用户。\n- 任务目标：提供准确、有用的信息，帮助用户解决问题。\n\n## 2. 回复规则\n- 回复内容必须基于事实和可靠来源。\n- 不提供与用户问题无关的信息或建议。\n- 若用户问题超出当前知识范围，请提示“抱歉，我暂时无法回答这个问题”。\n\n## 3. 常见场景示例\n- 用户询问天气？\n  回复：“请告诉我你所在的城市，我可以帮你查询天气。”\n- 用户询问如何做蛋炒饭？\n  回复：“蛋炒饭的做法很简单，你需要准备米饭、鸡蛋、葱花等食材，然后按照以下步骤操作……”'
+      prompt: 'Role: 你是一个乐于助人的AI助手。'
     },
     {
       value: 'dj',
@@ -96,8 +123,32 @@ const options = [
     }
 
 ];
-
-// ✅ 修复：初始化默认选中第一个，防止首次发送时 Prompt 为空
+const models =[
+  {
+    value: 'THUDM/glm-4-9b-chat',
+    label: 'GLM-4 9B',
+  },
+  {
+    value: 'Qwen/Qwen3-8B',
+    label: 'Qwen3 8B',
+  },
+  {
+    value: 'hunyuan-lite',
+    label: 'Hunyuan Lite',
+  },
+  {
+    value: 'glm-4-flash-250414',
+    label: 'GLM-4 Flash',
+  },
+  {
+    value: 'glm-4.7-flash',
+    label: 'GLM-4.7 Flash(可能趋势)',
+  },
+  {
+    value: "glm-4.6v-flash",
+    label: 'GLM-4.6v Flash(可能趋势)',
+  }
+]
 if (options.length > 0) {
   selectedPrompt.value = options[0].prompt;
 }
@@ -107,30 +158,61 @@ const newConversation = () => {
   messages.value = [];
 }
 
-// ⚠️ 模型名称保持不变
-const MODEL_NAME = 'zai-org/GLM-4.5';
+const showKeyDialog = ref(false);
+const tempKey = ref('');
 
-const client = new OpenAI({
-  apiKey: 'sk-7OiUAEkN9dPsFLkFznATrQE1qlDlS9hFNsMIXpOwGdBdRARM',
-  baseURL: 'https://api.suanli.cn/v1',
-  dangerouslyAllowBrowser: true,
+// 初始化检查 Key
+onMounted(async () => {
+  const savedKey = await window.api.getApiKey();
+  if (!savedKey) {
+    showKeyDialog.value = true;
+  }
 });
 
-const onSubmit = (evt) => {
-  inputValue.value = '';
-  startPage.value = false;
-
-  // 用户发送消息
-  messages.value.push({
-    from: 'user',
-    content: evt,
-    avatarConfig: { name: 'user' },
-  });
-
-  fetchData(evt);
+// 保存 Key
+const saveKey = async () => {
+  if (!tempKey.value.trim()) return;
+  const success = await window.api.saveApiKey(tempKey.value);
+  if (success) {
+    showKeyDialog.value = false;
+    tempKey.value = '';
+  }
 };
 
-const fetchData = async (ques) => {
+// 创建 OpenAI 客户端（使用从主进程获取的 Key）
+const getClient = async () => {
+  const key = await window.api.getApiKey();
+  if (!key) {
+    showKeyDialog.value = true;
+    throw new Error('API Key 未设置');
+  }
+  return new OpenAI({
+    apiKey: key,
+    baseURL: "https://ai.wsmdn.top/v1",
+    dangerouslyAllowBrowser: true,
+  });
+};
+
+const onSubmit = async (evt) => {
+  try {
+    const client = await getClient(); // 获取客户端（含 Key）
+    inputValue.value = '';
+    startPage.value = false;
+
+    // 用户发送消息
+    messages.value.push({
+      from: 'user',
+      content: evt,
+      avatarConfig: { name: 'user' },
+    });
+
+    fetchData(client, evt); // 传入 client
+  } catch (error) {
+    // 如果 getKey 失败，Dialog 已弹出，无需额外处理
+  }
+};
+
+const fetchData = async (client, ques) => {
   // ✅ 修复：直接使用 selectedPrompt.value，不再经过中间变量或重复赋值
   // 如果用户没选（理论上不会，因为有默认值），则给一个兜底提示
   const currentSystemPrompt = selectedPrompt.value || '你是一个有用的 AI 助手。';
@@ -166,7 +248,7 @@ const fetchData = async (ques) => {
 
   try {
     const completion = await client.chat.completions.create({
-      model: "Qwen/QwQ-32B", // 保持原样
+      model: selectedModel.value, // 保持原样
       messages: finalMessages,
       stream: true,
     });
