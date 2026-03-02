@@ -78,12 +78,12 @@
           v-if="msg.from === 'user'"
           :content="msg.content"
           :align="'right'"
-          :avatarConfig="{ imgSrc: '/user.png' }"
+          :avatarConfig="{ imgSrc: './user.png' }"
         >
         </McBubble>
         <McBubble
           v-else
-          :avatarConfig="{ imgSrc: '/gugugaga.png' }"
+          :avatarConfig="{ imgSrc: './gugugaga.png' }"
           :loading="msg.loading"
         >
           <McMarkdownCard
