@@ -46,18 +46,18 @@
       <router-view></router-view>
     </div>
   </div>
-  <!-- 咕咕嘎嘎对话框M -->
+  <!-- 咕咕嘎嘎对话框 -->
   <el-dialog
     v-model="dialogVisible"
     title="咕咕嘎嘎呀！"
     width="500"
+    :before-close="handleDialogClose"
   >
-    <iframe :src="url" allowfullscreen="allowfullscreen" width="100%" height="500" scrolling="no" frameborder="0" sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"></iframe>
+    <iframe v-if="shouldShowPlayer" :src="url" allowfullscreen="allowfullscreen" width="100%" height="400" scrolling="no" frameborder="0" sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"></iframe>
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="dialogVisible = false">Cancel</el-button>
-        <el-button type="primary" @click="dialogVisible = false">
-          Confirm
+        <el-button type="primary" @click="handleDialogClose">
+          咕咕嘎嘎
         </el-button>
       </div>
     </template>
@@ -72,6 +72,7 @@ import { ElIcon, ElDialog, ElButton } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
+const shouldShowPlayer = ref(false)
 const dialogVisible = ref(false)
 function go(which) {
   router.push(`/tools/${which}`)
@@ -105,6 +106,11 @@ function handleGugugaga() {
   url.value = "//player.bilibili.com/player.html?isOutside=true&bvid=" + selectedBvid + "&high_quality=1&danmaku=1&autoplay=false"
   console.log("Selected url:", url.value);
   dialogVisible.value = true;
+  shouldShowPlayer.value = true;
+}
+function handleDialogClose() {
+  shouldShowPlayer.value = false;
+  dialogVisible.value = false;
 }
 </script>
 
