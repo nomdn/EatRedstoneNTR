@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
       - name: Install Deps
         run: npm ci
@@ -130,54 +130,12 @@ jobs:
           cp dist-linux-x64/* dist-final/
           cp dist-linux-arm64/* dist-final/
 
-      # --- 获取 Tag 信息（复用原步骤名）---
-      - name: Get Commit Info
-        id: commit_info
-        run: |
-          CURRENT_TAG="${{ github.ref_name }}"
-          echo "short_sha=$CURRENT_TAG" >> $GITHUB_OUTPUT
-          echo "subject=" >> $GITHUB_OUTPUT
-
-      # --- 生成包含 changelog + 下载指南的完整 body ---
-      - name: Generate Changelog
-        id: changelog
-        run: |
-          # 第一部分：变更记录
-          echo "## 最新提交" > release_body.md
-          git log $(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "HEAD")..HEAD --pretty=format:"- %s" --no-merges >> release_body.md
-
-          # 第二部分：您指定的下载列表和提示（直接追加）
-          cat << 'EOF' >> release_body.md
-
-          ### 📦 下载列表
-
-          | 平台 | 架构 | 推荐文件 | 说明 |
-          | :--- | :--- | :--- | :--- |
-          | **Windows** | x64 | `win/*-setup.exe` | 一键安装程序 |
-          | **Linux** | x64 | `linux-x64/*-x64.AppImage` | 通用免安装 (推荐) |
-          | **Linux** | x64 | `linux-x64/*.deb` | Debian/Ubuntu 安装包 |
-          | **Linux** | ARM64 | `linux-arm64/*-arm64.AppImage` | ARM64通用免安装版 |
-          | **Linux** | ARM64 | `linux-arm64/*-arm64.deb` | ARM 架构 Deb 包 |
-
-          > 💡 **提示**:
-          > - Windows 用户直接运行 `setup.exe`。
-          > - Linux 用户优先选择 `AppImage`，无需安装，赋予执行权限后双击即可运行。
-          > - 如果不确定架构，请在终端运行 `uname -m` (x86_64 为 x64, aarch64 为 ARM64)。
-          EOF
-
-          # 输出为 body（注意：字段名为 body，与后续引用一致）
-          BODY=$(cat release_body.md)
-          echo "body<<EOFMARKER" >> $GITHUB_OUTPUT
-          echo "$BODY" >> $GITHUB_OUTPUT
-          echo "EOFMARKER" >> $GITHUB_OUTPUT
-
       # --- 统一上传并发布 ---
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "Release ${{ github.ref_name }}"
-          body: ${{ steps.changelog.outputs.body }}   # ✅ 现在字段名匹配了
+          name: "Release ${{ github.ref_name }}"  # ✅ 现在字段名匹配了
           generate_release_notes: true
           draft: false
           prerelease: false
