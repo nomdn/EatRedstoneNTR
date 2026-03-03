@@ -274,8 +274,11 @@ const onSubmit = async (content: string) => {
     inputValue.value = '';
     startPage.value = false;
 
-    const thinkingMode = isThinkingMode.value; // 获取当前模式
-
+    var thinkingMode = isThinkingMode.value; // 获取当前模式
+    if (!thinkAvalibleModels.value.includes(selectedModel.value)) {
+      thinkingMode = false; // 如果当前模型不支持深度思考，强制关闭
+      isThinkingMode.value = false;
+    }
     messages.value.push({ from: 'user', content: currentContent });
     const aiIndex = messages.value.length;
     messages.value.push({ from: 'model', content: '', loading: true });
