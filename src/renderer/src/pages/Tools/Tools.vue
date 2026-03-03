@@ -33,6 +33,10 @@
         <ChatRound style="width: 80px; height: 80px; margin-right: 30px" />
         AI 聊天
       </div>
+      <div class="tool-tile" @click="handleGugugaga">
+        <img src="/gugugaga.png" style="width: 80px; height: 80px; margin-right: 30px" />
+        咕咕嘎嘎！
+      </div>
     </div>
     <div v-else class="tool-content-area">
       <div class="tool-header">
@@ -42,16 +46,33 @@
       <router-view></router-view>
     </div>
   </div>
+  <!-- 咕咕嘎嘎对话框M -->
+  <el-dialog
+    v-model="dialogVisible"
+    title="咕咕嘎嘎呀！"
+    width="500"
+  >
+    <iframe :src="url" allowfullscreen="allowfullscreen" width="100%" height="500" scrolling="no" frameborder="0" sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"></iframe>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogVisible = false">Cancel</el-button>
+        <el-button type="primary" @click="dialogVisible = false">
+          Confirm
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { computed,ref } from 'vue'
 import { Picture, Switch, Lock, Camera, ChatRound, VideoPlay } from '@element-plus/icons-vue'
-import { ElIcon } from 'element-plus'
+import { ElIcon, ElDialog, ElButton } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
+const dialogVisible = ref(false)
 function go(which) {
   router.push(`/tools/${which}`)
 }
@@ -70,6 +91,21 @@ const currentTitle = computed(() => {
   if (p.startsWith('/tools/aichat')) return 'AI 聊天'
   return ''
 })
+const bvidList = [
+  "BV1ewwxesEu4",
+  "BV1g93tz3EKR",
+  "BV1k9FfzHEPR",
+  "BV1ypAYz4EcM",
+  "BV1WQBVBzE2W"
+];
+const url = ref("//player.bilibili.com/player.html?isOutside=true&bvid=BV1ewwxesEu4&high_quality=1&danmaku=1&autoplay=false");
+function handleGugugaga() {
+  const randomIndex = Math.floor(Math.random() * bvidList.length);
+  const selectedBvid = bvidList[randomIndex];
+  url.value = "//player.bilibili.com/player.html?isOutside=true&bvid=" + selectedBvid + "&high_quality=1&danmaku=1&autoplay=false"
+  console.log("Selected url:", url.value);
+  dialogVisible.value = true;
+}
 </script>
 
 <style scoped>
