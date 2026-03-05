@@ -99,11 +99,11 @@ const bvidList = [
   "BV1ypAYz4EcM",
   "BV1WQBVBzE2W"
 ];
-const url = ref("//player.bilibili.com/player.html?isOutside=true&bvid=BV1ewwxesEu4&high_quality=1&danmaku=1&autoplay=false");
+const url = ref("https://player.bilibili.com/player.html?isOutside=true&bvid=BV1ewwxesEu4&high_quality=1&danmaku=1&autoplay=false");
 function handleGugugaga() {
   const randomIndex = Math.floor(Math.random() * bvidList.length);
   const selectedBvid = bvidList[randomIndex];
-  url.value = "//player.bilibili.com/player.html?isOutside=true&bvid=" + selectedBvid + "&high_quality=1&danmaku=1&autoplay=true"
+  url.value = "https://player.bilibili.com/player.html?isOutside=true&bvid=" + selectedBvid + "&high_quality=1&danmaku=1&autoplay=true"
   console.log("Selected url:", url.value);
   dialogVisible.value = true;
   shouldShowPlayer.value = true;
