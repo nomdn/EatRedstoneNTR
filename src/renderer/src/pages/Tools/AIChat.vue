@@ -9,7 +9,7 @@
   >
     <h3>
       您需要在
-      <a href="https://ai.wsmdn.top/" target="_blank">咕咕嘎嘎API平台</a>
+      <a href="https://ai.wsmdn.dpdns.org/" target="_blank">咕咕嘎嘎API平台</a>
       获取密钥
     </h3>
     <el-input
@@ -259,7 +259,7 @@ const getClient = async () => {
   }
   return new OpenAI({
     apiKey: key,
-    baseURL: 'https://ai.wsmdn.top/v1',
+    baseURL: 'https://ai.wsmdn.dpdns.org/v1',
     dangerouslyAllowBrowser: true,
   });
 };
