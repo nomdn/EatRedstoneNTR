@@ -35,4 +35,4 @@ $ npm run build:linux
 ### 这是啥
 我的寒假作业
 ### AIChat
-要使用柠檬提供的AI聊天工具,你需要在[咕咕嘎嘎Chat API获取平台](https://ai.wsmdn.top/)获取一个key
+要使用柠檬提供的AI聊天工具,你需要在[咕咕嘎嘎Chat API获取平台](https://ai.wsmdn.dpdns.org/)获取一个key
